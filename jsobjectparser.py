@@ -2,10 +2,11 @@ import re
 
 ID_RE = re.compile(r'[a-zA-Z_\$][\w\d_\$]*')
 DIGIT_RE = re.compile(r'[1-9]\d*(\.\d+)?')
-BOOLEAN_RE = re.compile(r'(true|false)[\$\W]')
+BOOLEAN_RE = re.compile(r'(true|false|null)[\$\W]')
 BOOLEAN_DIC = {
     'true': True,
-    'false': False
+    'false': False,
+    'null': None
 }
 
 class ParseError(BaseException):
@@ -69,7 +70,7 @@ def parse_identifier(s):
         raise ParseError('expect an identifier: %s', s)
     return m.group(), s[m.end():].strip()
 
-def parse_other(s):  #int, bool
+def parse_other(s):  #int, bool, null
     m = BOOLEAN_RE.match(s)
     if m:
         b = m.group().strip()
@@ -120,6 +121,10 @@ if __name__ == '__main__':
     }
 }
     """
-    obj = parse(s)
+    from time import time
+    t = time()
+    for _ in range(100000):
+        obj = parse(s)
+    print((time()-t)/100000)
     print(obj)
     print(type(obj))
