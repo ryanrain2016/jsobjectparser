@@ -14,12 +14,12 @@ class ParseError(BaseException):
 
 def parse_obj(s):
     items = []
-    s = s[1:].strip()
+    s = s[1:].lstrip()
     while s and not s.startswith('}'):
         key, s = parse_identifier(s)
         if not s.startswith(':'):
             raise ParseError('expect ":"')
-        s = s[1:].strip()
+        s = s[1:].lstrip()
         parser = PARSER_MAP.get(s[0], parse_other)
         value, s = parser(s)
         items.append((key, value))
@@ -27,10 +27,10 @@ def parse_obj(s):
             break
         if not s.startswith(','):
             raise ParseError('expect ",": %s', s)
-        s = s[1:].strip()
+        s = s[1:].lstrip()
     if not s:
         raise ParseError('expect "}"')
-    s = s[1:].strip()
+    s = s[1:].lstrip()
     return dict(items), s
 
 def parse_str(s):
@@ -45,12 +45,12 @@ def parse_str(s):
         if t.endswith('\\') and not t.endswith('\\\\'):
             parsed += t + quote
             continue
-        return (parsed + t), s.strip()
+        return (parsed + t), s.lstrip()
     raise ParseError('EOL while parse string')
 
 def parse_array(s):
     items = []
-    s = s[1:].strip()
+    s = s[1:].lstrip()
     while s and not s.startswith(']'):
         parser = PARSER_MAP.get(s[0], parse_other)
         value, s = parser(s)
@@ -59,16 +59,18 @@ def parse_array(s):
             break
         if not s.startswith(','):
             raise ParseError('expect ",": %s', s)
-        s = s[1:].strip()
+        s = s[1:].lstrip()
     if not s:
         raise ParseError('expect "]"')
-    return items, s[1:].strip()
+    return items, s[1:].lstrip()
 
 def parse_identifier(s):
+    if s[0] in '"\'':
+        return parse_str(s)
     m = ID_RE.match(s)
     if not m:
         raise ParseError('expect an identifier: %s', s)
-    return m.group(), s[m.end():].strip()
+    return m.group(), s[m.end():].lstrip()
 
 def parse_other(s):  #int, bool, null
     m = BOOLEAN_RE.match(s)
@@ -81,11 +83,11 @@ def parse_other(s):  #int, bool, null
             raise ParseError('syntax error: %s', s)
         num = m.group()
         obj = int(num) if '.' not in num else float(num)
-    return obj, s[m.end():].strip()
+    return obj, s[m.end():].lstrip()
 
 
 def parse(s):
-    s = s.strip()
+    s = s.lstrip()
     if not s:
         return None
     parser = PARSER_MAP.get(s[0], parse_other)
@@ -123,8 +125,15 @@ if __name__ == '__main__':
     """
     from time import time
     t = time()
-    for _ in range(100000):
+    for _ in range(10000):
         obj = parse(s)
-    print((time()-t)/100000)
+    print((time()-t)/10000)
     print(obj)
     print(type(obj))
+    import json
+    from json import loads
+    s = json.dumps(obj)
+    t = time()
+    for _ in range(100000):
+        obj = loads(s)
+    print((time()-t)/100000)
